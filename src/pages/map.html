@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Longan Map — Northern Thailand</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <style>
+    /* Fix map height */
+    #map {
+      width: 100%;
+      height: 100%;
+      min-height: 400px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="w-full border-b bg-white shadow-sm">
+      <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-semibold text-emerald-700">
+            แผนที่ลำไยภาคเหนือ (Longan Map)
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-600">
+            แสดงตำแหน่งและราคาลำไยในภาคเหนือของประเทศไทยด้วย Leaflet + OpenStreetMap + Nominatim
+          </p>
+        </div>
+        <div class="text-right text-xs sm:text-sm text-slate-700">
+          <!-- 🔧 แก้ชื่อ/รหัสของตัวเองตรงนี้ -->
+          ชื่อ: <span id="studentName">สมมติ ตัวอย่าง</span><br />
+          รหัส: <span id="studentId">6604xxxxxx</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main layout -->
+    <main class="flex-1 max-w-6xl mx-auto w-full px-4 py-4">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[75vh]">
+        <!-- Left: Form & list -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-4">
+          <h2 class="text-base sm:text-lg font-semibold text-emerald-700 flex items-center gap-2">
+            เพิ่ม/จัดการจุดบนแผนที่
+          </h2>
+
+          <!-- Form -->
+          <form id="markerForm" class="space-y-3 text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">จังหวัด (Province)</label>
+                <input
+                  type="text"
+                  id="province"
+                  class="w-full rounded-lg border border-slate-300 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  placeholder="เช่น เชียงใหม่"
+                  required
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">สถานที่ (Place)</label>
+                <input
+                  type="text"
+                  id="place"
+                  class="w-full rounded-lg border border-slate-300 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  placeholder="เช่น ตลาดสันทราย"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">
+                  ราคา (บาท/กก.) [Price]
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  id="price"
+                  class="w-full rounded-lg border border-slate-300 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  placeholder="เช่น 35.50"
+                  required
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">
+                  วันที่สำรวจ [Date]
+                </label>
+                <input
+                  type="date"
+                  id="date"
+                  class="w-full rounded-lg border border-slate-300 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">
+                  Latitude (ถ้ามี)
+                </label>
+                <input
+                  type="number"
+                  id="lat"
+                  step="0.0001"
+                  class="w-full rounded-lg border border-slate-300 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  placeholder="เช่น 18.7883"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">
+                  Longitude (ถ้ามี)
+                </label>
+                <input
+                  type="number"
+                  id="lng"
+                  step="0.0001"
+                  class="w-full rounded-lg border border-slate-300 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  placeholder="เช่น 98.9853"
+                />
+              </div>
+            </div>
+
+            <p class="text-[11px] text-slate-500">
+              * ถ้าไม่ใส่ Latitude/Longitude ระบบจะใช้ Geocoding จาก Province + Place (Nominatim) และแคชผลใน LocalStorage
+            </p>
+
+            <div class="flex flex-wrap gap-2 pt-1">
+              <button
+                type="submit"
+                class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition"
+              >
+                เพิ่มจุด (Add Marker)
+              </button>
+              <button
+                type="button"
+                id="fitAllBtn"
+                class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 text-xs font-medium hover:bg-emerald-50"
+              >
+                โฟกัสทุกจุด (Fit all markers)
+              </button>
+              <button
+                type="button"
+                id="clearCacheBtn"
+                class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-rose-300 text-rose-700 text-xs font-medium hover:bg-rose-50"
+              >
+                ล้างแคช Geocoding
+              </button>
+            </div>
+          </form>
+
+          <!-- Sample usage -->
+          <div class="mt-2 border-t border-slate-200 pt-2 text-xs space-y-1">
+            <div class="font-semibold text-slate-700">ตัวอย่างการใช้งานตามโจทย์:</div>
+            <ul class="list-disc list-inside text-slate-600">
+              <li>เลือกจังหวัด "เชียงใหม่" → ระบบวางจุดที่ 18.7883, 98.9853</li>
+              <li>กรอก "ตลาดสันทราย", "เชียงใหม่", lat=18.8056, lng=99.0105</li>
+            </ul>
+          </div>
+
+          <!-- List markers -->
+          <div class="mt-2 flex-1 overflow-auto border-t border-slate-200 pt-2">
+            <h3 class="text-xs font-semibold text-slate-700 mb-1">รายการจุดที่เพิ่ม</h3>
+            <ul id="markerList" class="space-y-1 text-xs text-slate-700 max-h-40 overflow-y-auto"></ul>
+          </div>
+        </section>
+
+        <!-- Right: Map -->
+        <section class="lg:col-span-2 rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100">
+          <div id="map"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // 🔧 แก้ชื่อ–สกุล–รหัสนักศึกษาได้ที่นี่
+    const STUDENT_NAME = "สมมติ ตัวอย่าง"; // TODO: เปลี่ยนเป็นชื่อจริง
+    const STUDENT_ID = "6604xxxxxx";       // TODO: เปลี่ยนเป็นรหัสจริง
+
+    document.getElementById("studentName").textContent = STUDENT_NAME;
+    document.getElementById("studentId").textContent = STUDENT_ID;
+
+    // ------------------------------
+    // 1) สร้างแผนที่พื้นฐานภาคเหนือ
+    // ------------------------------
+    const map = L.map("map").setView([18.7883, 98.9853], 8); // Chiang Mai, zoom 8
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map);
+
+    // Green marker icon
+    const greenIcon = new L.Icon({
+      iconUrl:
+        "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+      shadowUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    });
+
+    // เก็บ marker ทั้งหมด และ bounds
+    const markers = [];
+    const bounds = L.latLngBounds();
+
+    const markerListEl = document.getElementById("markerList");
+
+    // ------------------------------
+    // Helper: สร้าง popup content
+    // ------------------------------
+    function buildPopupContent(data) {
+      const placeLabel = data.place ? data.place : "(ไม่ระบุสถานที่)";
+      const provinceLabel = data.province ? data.province : "(ไม่ระบุจังหวัด)";
+      const priceLabel = data.price ? data.price : "-";
+      const dateLabel = data.date ? data.date : "-";
+
+      return `
+        <div style="font-size: 12px;">
+          <strong>${placeLabel} - ${provinceLabel}</strong><br/>
+          ราคา: ${priceLabel} บาท/กก.<br/>
+          วันที่สำรวจ: ${dateLabel}<br/>
+          โดย: ${STUDENT_NAME} (${STUDENT_ID})
+        </div>
+      `;
+    }
+
+    // ------------------------------
+    // Helper: เพิ่ม marker ลงแผนที่
+    // ------------------------------
+    function addMarker(data, fit = true) {
+      const marker = L.marker([data.lat, data.lng], { icon: greenIcon });
+      marker.bindPopup(buildPopupContent(data));
+
+      marker.on("click", () => {
+        marker.setPopupContent(buildPopupContent(data));
+      });
+
+      marker.addTo(map);
+
+      markers.push({ marker, data });
+      bounds.extend([data.lat, data.lng]);
+
+      // อัปเดตรายการใน sidebar
+      const li = document.createElement("li");
+      li.textContent = `${data.place || data.province || "ไม่ระบุ"} | ราคา ${data.price} | ${data.date}`;
+      li.className =
+        "px-2 py-1 rounded-md bg-emerald-50 border border-emerald-100 cursor-pointer hover:bg-emerald-100";
+      li.onclick = () => {
+        map.setView([data.lat, data.lng], 12);
+        marker.openPopup();
+      };
+      markerListEl.appendChild(li);
+
+      if (fit && markers.length > 0) {
+        map.fitBounds(bounds.pad(0.2));
+      }
+
+      return marker;
+    }
+
+    // ------------------------------
+    // Helper: Geocoding + Cache
+    // ------------------------------
+    async function geocodePlace(province, place) {
+      const query = place ? `${place}, ${province}, Thailand` : `${province}, Thailand`;
+      const cacheKey = `geo_cache_${encodeURIComponent(query)}`;
+
+      // เช็คจาก LocalStorage ก่อน
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.lat && parsed.lng) {
+            return parsed;
+          }
+        } catch (e) {
+          console.warn("Invalid cache:", e);
+        }
+      }
+
+      // ถ้าไม่มี cache → เรียก Nominatim
+      const url =
+        "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+        encodeURIComponent(query);
+
+      const res = await fetch(url, {
+        headers: {
+          "Accept-Language": "th,en;q=0.8",
+        },
+      });
+      const data = await res.json();
+      if (!data || data.length === 0) {
+        throw new Error("ไม่พบพิกัดจาก Nominatim");
+      }
+
+      const lat = parseFloat(data[0].lat);
+      const lng = parseFloat(data[0].lon);
+
+      const result = { lat, lng };
+      localStorage.setItem(cacheKey, JSON.stringify(result));
+
+      return result;
+    }
+
+    // ------------------------------
+    // ฟอร์มเพิ่มจุด
+    // ------------------------------
+    const form = document.getElementById("markerForm");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const province = document.getElementById("province").value.trim();
+      const place = document.getElementById("place").value.trim();
+      const price = document.getElementById("price").value.trim();
+      const date = document.getElementById("date").value;
+      const latStr = document.getElementById("lat").value.trim();
+      const lngStr = document.getElementById("lng").value.trim();
+
+      let lat, lng;
+
+      try {
+        if (latStr && lngStr) {
+          // ใช้พิกัดที่ผู้ใช้กรอกเอง
+          lat = parseFloat(latStr);
+          lng = parseFloat(lngStr);
+        } else {
+          // ใช้ Geocoding จาก province + place
+          const geo = await geocodePlace(province, place);
+          lat = geo.lat;
+          lng = geo.lng;
+        }
+
+        const markerData = {
+          province,
+          place,
+          price,
+          date,
+          lat,
+          lng,
+        };
+
+        addMarker(markerData, true);
+
+        // เคลียร์ฟอร์มยกเว้น province (แล้วแต่จะชอบ)
+        // form.reset();
+      } catch (err) {
+        alert("เกิดข้อผิดพลาดในการหาพิกัด: " + err.message);
+        console.error(err);
+      }
+    });
+
+    // ปุ่มโฟกัสทุก marker
+    document.getElementById("fitAllBtn").addEventListener("click", () => {
+      if (markers.length > 0) {
+        map.fitBounds(bounds.pad(0.2));
+      } else {
+        alert("ยังไม่มีจุดบนแผนที่");
+      }
+    });
+
+    // ปุ่มล้าง cache geocoding
+    document.getElementById("clearCacheBtn").addEventListener("click", () => {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("geo_cache_")) {
+          localStorage.removeItem(key);
+        }
+      });
+      alert("ล้างแคช Geocoding เรียบร้อยแล้ว");
+    });
+
+    // ------------------------------
+    // ตัวอย่างจุดเริ่มต้นตามโจทย์
+    // ------------------------------
+    // 9.1) จังหวัดเชียงใหม่
+    addMarker(
+      {
+        province: "เชียงใหม่",
+        place: "เชียงใหม่",
+        price: "35.50",
+        date: "2023-08-15",
+        lat: 18.7883,
+        lng: 98.9853,
+      },
+      false
+    );
+
+    // 9.2) ตลาดสันทราย - เชียงใหม่
+    addMarker(
+      {
+        province: "เชียงใหม่",
+        place: "ตลาดสันทราย",
+        price: "35.50",
+        date: "2023-08-15",
+        lat: 18.8056,
+        lng: 99.0105,
+      },
+      false
+    );
+
+    if (markers.length > 0) {
+      map.fitBounds(bounds.pad(0.2));
+    }
+  </script>
+</body>
+</html>
