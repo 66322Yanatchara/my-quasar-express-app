@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Middleware
-app.use(cors());
+app.use(cors());  // อนุญาต cross-origin จาก frontend
 app.use(express.json());
 
 // สร้างโฟลเดอร์ logs ถ้ายังไม่มี (สำหรับ volume demo)
@@ -17,28 +17,20 @@ if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
-// ✅ root route กัน Cannot GET /
-app.get('/', (req, res) => {
-  res.send('my-express-backend is running ✅ ลองเรียก /api/demo ดูได้เลย');
-});
-
-// Endpoint demo: Return Git + Docker info และ log request
+// Endpoint demo: Return info และ log request
 app.get('/api/demo', (req, res) => {
   const logMessage = `Request at ${new Date().toISOString()}: ${req.ip}\n`;
   fs.appendFileSync(path.join(logsDir, 'access.log'), logMessage);
 
   res.json({
-    git: {
-      title: 'Advanced Git Workflow',
-      detail:
-        'ใช้ branch protection บน GitHub, code review ใน PR, และ squash merge เพื่อ history สะอาด',
-    },
-    docker: {
-      title: 'Advanced Docker',
-      detail:
-        'ใช้ multi-stage build, healthcheck ใน Dockerfile, และ orchestration ด้วย Compose/Swarm',
-    },
+    name: 'Yanatchara Fongloy',
+    student_id: '6604101322',
   });
+});
+
+// root route
+app.get('/', (req, res) => {
+  res.send('Backend is running');
 });
 
 // Error handling

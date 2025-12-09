@@ -1,0 +1,16 @@
+services:
+  backend:
+    build: ./backend
+    container_name: my-express-backend
+    image: 66322yanatchara/my-express-backend:latest
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build: ./frontend
+    container_name: my-quasar-frontend
+    image: 66322yanatchara/my-quasar-frontend:latest
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
